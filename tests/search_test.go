@@ -21,12 +21,12 @@ func (this *Entry) MakeId() interface{} {
 	return this.Id
 }
 
-func (this *Entry) Key() (r string) {
+func (this *Entry) IndexKey() (r string) {
 	r = this.Id.Hex()
 	return
 }
 
-func (this *Entry) Pieces() (r []*redisgosearch.Piece) {
+func (this *Entry) IndexPieces() (r []*redisgosearch.Piece) {
 	r = append(r, &redisgosearch.Piece{
 		IndexContent: this.Title,
 		Type:         "entries",
@@ -46,7 +46,7 @@ func (this *Entry) Pieces() (r []*redisgosearch.Piece) {
 	return
 }
 
-func (this *Entry) Entity() (r interface{}) {
+func (this *Entry) IndexEntity() (r interface{}) {
 	r = this
 	return
 }
@@ -58,10 +58,12 @@ func TestIndexAndSearch(t *testing.T) {
 	client := redisgosearch.NewClient("localhost:6379", "theplant")
 
 	e1 := &Entry{
+		Id:      bson.ObjectIdHex("50344415ff3a8aa694000001"),
 		Title:   "Thread Safety",
 		Content: "The connection http://google.com Send and Flush methods cannot be called concurrently with other calls to these methods. The connection Receive method cannot be called concurrently with other calls to Receive. Because the connection Do method uses Send, Flush and Receive, the Do method cannot be called concurrently with Send, Flush, Receive or Do. Unless stated otherwise, all other concurrent access is allowed.",
 	}
 	e2 := &Entry{
+		Id:      bson.ObjectIdHex("50344415ff3a8aa694000002"),
 		Title:   "redis is a client for the Redis database",
 		Content: "The Conn interface is the primary interface for working with Redis. Applications create connections by calling the Dial, DialWithTimeout or NewConn functions. In the future, functions will be added for creating shareded and other types of connections.",
 	}
@@ -80,6 +82,9 @@ func TestIndexAndSearch(t *testing.T) {
 	r.All(&entries)
 	if len(entries) != 1 {
 		t.Error(entries)
+	}
+	if entries[0].Title != "Thread Safety" {
+		t.Error(entries[0])
 	}
 
 }

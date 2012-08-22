@@ -2,7 +2,8 @@ package redisgosearch
 
 import (
 	"strings"
-	"fmt"
+	// "fmt"
+	"encoding/json"
 )
 
 type Result struct {
@@ -17,6 +18,7 @@ func (this Result) Type(t string) (r TypeList) {
 }
 
 func (this TypeList) All(v interface{}) (err error) {
+	err = json.Unmarshal([]byte(this.jsonData), v)
 	return
 }
 
@@ -35,13 +37,27 @@ func (this *Client) SearchInType(keywords string, indexType string) (r TypeList,
 		return
 	}
 
-	rawRs, err := this.redisConn.Do("SMEMBERS", this.withnamespace("keywords", targetKey, indexType))
-	r.jsonData = "["
-	var stringRs []string
+	rawKeyRs, err := this.redisConn.Do("SMEMBERS", this.withnamespace("keywords", targetKey, indexType))
+	if err != nil {
+		return
+	}
+
+	iKeyRs := rawKeyRs.([]interface{})
+	rawRs, err := this.redisConn.Do("MGET", iKeyRs...)
+	if err != nil {
+		return
+	}
+
 	iRs := rawRs.([]interface{})
+
+	var stringRs []string
 	for _, row := range iRs {
+		if row == nil {
+			continue
+		}
 		stringRs = append(stringRs, string(row.([]byte)))
 	}
-	fmt.Printf("%+v", stringRs)
+
+	r.jsonData = "[" + strings.Join(stringRs, ", ") + "]"
 	return
 }
