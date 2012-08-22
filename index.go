@@ -37,8 +37,8 @@ func (this *Client) Index(i Indexable) (err error) {
 
 	pieces, relatedIndexables := i.IndexPieces()
 
-	entityKey := this.withnamespace("entity", key)
-	this.redisConn.Do("SET", this.withnamespace("entity", key), c)
+	entityKey := this.withnamespace(indexType, "entity", key)
+	this.redisConn.Do("SET", entityKey, c)
 
 	filters := i.IndexFilters()
 
