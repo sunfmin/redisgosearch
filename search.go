@@ -6,31 +6,13 @@ import (
 	"encoding/json"
 )
 
-type Result struct {
-}
-
-type TypeList struct {
-	jsonData string
-}
-
-func (this Result) Type(t string) (r TypeList) {
-	return
-}
-
-func (this TypeList) All(v interface{}) (err error) {
-	err = json.Unmarshal([]byte(this.jsonData), v)
-	return
-}
-
-func (this *Client) SearchInType(keywords string, indexType string) (r TypeList, err error) {
+func (this *Client) Search(indexType string, keywords string, limit int, result interface{}) (err error) {
 	words := Segment(keywords)
 	targetKey := strings.Join(words, "+")
 	args := []interface{}{this.withnamespace("keywords", targetKey, indexType)}
 	for _, word := range words {
 		args = append(args, this.withnamespace("keywords", word, indexType))
 	}
-
-	// fmt.Printf("%+v", args)
 
 	_, err = this.redisConn.Do("SINTERSTORE", args...)
 	if err != nil {
@@ -58,6 +40,9 @@ func (this *Client) SearchInType(keywords string, indexType string) (r TypeList,
 		stringRs = append(stringRs, string(row.([]byte)))
 	}
 
-	r.jsonData = "[" + strings.Join(stringRs, ", ") + "]"
+	jsonData := "[" + strings.Join(stringRs, ", ") + "]"
+
+	err = json.Unmarshal([]byte(jsonData), result)
+
 	return
 }
