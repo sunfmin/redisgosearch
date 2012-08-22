@@ -10,6 +10,7 @@ import (
 
 type Entry struct {
 	Id          bson.ObjectId `bson:"_id"`
+	GroupId     string
 	Title       string
 	Content     string
 	Attachments []*Attachment
@@ -31,10 +32,16 @@ func (this *IndexedAttachment) IndexPieces() (r []string, ais []redisgosearch.In
 	return
 }
 
-func (this *IndexedAttachment) IndexEntity() (key string, indexType string, entity interface{}) {
+func (this *IndexedAttachment) IndexEntity() (indexType string, key string, entity interface{}) {
 	key = this.Entry.Id.Hex() + this.Attachment.Filename
 	indexType = "files"
 	entity = this
+	return
+}
+
+func (this *IndexedAttachment) IndexFilters() (r map[string]string) {
+	r = make(map[string]string)
+	r["group"] = this.Entry.GroupId
 	return
 }
 
@@ -57,10 +64,16 @@ func (this *Entry) IndexPieces() (r []string, ais []redisgosearch.Indexable) {
 	return
 }
 
-func (this *Entry) IndexEntity() (key string, indexType string, entity interface{}) {
-	indexType = "entries"
+func (this *Entry) IndexEntity() (indexType string, key string, entity interface{}) {
 	key = this.Id.Hex()
+	indexType = "entries"
 	entity = this
+	return
+}
+
+func (this *Entry) IndexFilters() (r map[string]string) {
+	r = make(map[string]string)
+	r["group"] = this.GroupId
 	return
 }
 
@@ -72,6 +85,7 @@ func TestIndexAndSearch(t *testing.T) {
 
 	e1 := &Entry{
 		Id:      bson.ObjectIdHex("50344415ff3a8aa694000001"),
+		GroupId: "Qortex",
 		Title:   "Thread Safety",
 		Content: "The connection http://google.com Send and Flush methods cannot be called concurrently with other calls to these methods. The connection Receive method cannot be called concurrently with other calls to Receive. Because the connection Do method uses Send, Flush and Receive, the Do method cannot be called concurrently with Send, Flush, Receive or Do. Unless stated otherwise, all other concurrent access is allowed.",
 		Attachments: []*Attachment{
@@ -84,6 +98,7 @@ func TestIndexAndSearch(t *testing.T) {
 	}
 	e2 := &Entry{
 		Id:      bson.ObjectIdHex("50344415ff3a8aa694000002"),
+		GroupId: "ASICS",
 		Title:   "redis is a client for the Redis database",
 		Content: "The Conn interface is the primary interface for working with Redis. Applications create connections by calling the Dial, DialWithTimeout or NewConn functions. In the future, functions will be added for creating shareded and other types of connections.",
 		Attachments: []*Attachment{
@@ -106,7 +121,7 @@ func TestIndexAndSearch(t *testing.T) {
 	client.Index(e2)
 
 	var entries []*Entry
-	err := client.Search("entries", "concurrent access", 10, &entries)
+	err := client.Search("entries", "concurrent access", nil, 10, &entries)
 	if err != nil {
 		t.Error(err)
 	}
@@ -118,7 +133,7 @@ func TestIndexAndSearch(t *testing.T) {
 	}
 
 	var attachments []*IndexedAttachment
-	err = client.Search("files", "alternate qortex", 20, &attachments)
+	err = client.Search("files", "alternate qortex", map[string]string{"group": "ASICS"}, 20, &attachments)
 	if err != nil {
 		t.Error(err)
 	}

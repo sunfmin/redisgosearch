@@ -6,25 +6,29 @@ import (
 	"encoding/json"
 )
 
-func (this *Client) Search(indexType string, keywords string, limit int, result interface{}) (err error) {
+func (this *Client) Search(indexType string, keywords string, filters map[string]string, limit int, result interface{}) (err error) {
 	words := Segment(keywords)
-	targetKey := strings.Join(words, "+")
-	args := []interface{}{this.withnamespace("keywords", targetKey, indexType)}
+	var args []interface{}
 	for _, word := range words {
-		args = append(args, this.withnamespace("keywords", word, indexType))
+		args = append(args, this.withnamespace(indexType, "keywords", word))
 	}
 
-	_, err = this.redisConn.Do("SINTERSTORE", args...)
-	if err != nil {
-		return
+	if filters != nil {
+		for k, v := range filters {
+			args = append(args, this.withnamespace(indexType, "filters", k, v))
+		}
 	}
-
-	rawKeyRs, err := this.redisConn.Do("SMEMBERS", this.withnamespace("keywords", targetKey, indexType))
+	// fmt.Println(args)
+	rawKeyRs, err := this.redisConn.Do("SINTER", args...)
 	if err != nil {
 		return
 	}
 
 	iKeyRs := rawKeyRs.([]interface{})
+	if len(iKeyRs) == 0 {
+		return
+	}
+
 	rawRs, err := this.redisConn.Do("MGET", iKeyRs...)
 	if err != nil {
 		return

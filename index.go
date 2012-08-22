@@ -13,7 +13,8 @@ type Client struct {
 
 type Indexable interface {
 	IndexPieces() (pieces []string, relatedPieces []Indexable)
-	IndexEntity() (key string, indexType string, entity interface{})
+	IndexEntity() (indexType string, key string, entity interface{})
+	IndexFilters() (r map[string]string)
 }
 
 func NewClient(address string, namespace string) (r *Client) {
@@ -27,7 +28,7 @@ func NewClient(address string, namespace string) (r *Client) {
 }
 
 func (this *Client) Index(i Indexable) (err error) {
-	key, indexType, entity := i.IndexEntity()
+	indexType, key, entity := i.IndexEntity()
 
 	c, err := json.Marshal(entity)
 	if err != nil {
@@ -36,12 +37,19 @@ func (this *Client) Index(i Indexable) (err error) {
 
 	pieces, relatedIndexables := i.IndexPieces()
 
+	entityKey := this.withnamespace("entity", key)
 	this.redisConn.Do("SET", this.withnamespace("entity", key), c)
+
+	filters := i.IndexFilters()
+
+	for k, v := range filters {
+		this.redisConn.Do("SADD", this.withnamespace(indexType, "filters", k, v), entityKey)
+	}
 
 	for _, piece := range pieces {
 		words := Segment(piece)
 		for _, word := range words {
-			this.redisConn.Do("SADD", this.withnamespace("keywords", word, indexType), this.withnamespace("entity", key))
+			this.redisConn.Do("SADD", this.withnamespace(indexType, "keywords", word), entityKey)
 		}
 	}
 
