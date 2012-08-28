@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 )
 
-func (this *Client) Search(indexType string, keywords string, filters map[string]string, limit int, result interface{}) (err error) {
+func (this *Client) Search(indexType string, keywords string, filters map[string]string, skip int, limit int, result interface{}) (count int, err error) {
 	words := Segment(keywords)
 	var args []interface{}
 	for _, word := range words {
@@ -18,7 +18,7 @@ func (this *Client) Search(indexType string, keywords string, filters map[string
 			args = append(args, this.withnamespace(indexType, "filters", k, v))
 		}
 	}
-	// fmt.Println(args)
+
 	rawKeyRs, err := this.redisConn.Do("SINTER", args...)
 	if err != nil {
 		return
@@ -28,6 +28,13 @@ func (this *Client) Search(indexType string, keywords string, filters map[string
 	if len(iKeyRs) == 0 {
 		return
 	}
+
+	count = len(iKeyRs)
+	end := skip + limit
+	if end > count {
+		end = count
+	}
+	iKeyRs = iKeyRs[skip:end]
 
 	rawRs, err := this.redisConn.Do("MGET", iKeyRs...)
 	if err != nil {

@@ -121,11 +121,11 @@ func TestIndexAndSearch(t *testing.T) {
 	client.Index(e2)
 
 	var entries []*Entry
-	err := client.Search("entries", "concurrent access", nil, 10, &entries)
+	count, err := client.Search("entries", "concurrent access", nil, 0, 10, &entries)
 	if err != nil {
 		t.Error(err)
 	}
-	if len(entries) != 1 {
+	if count != 1 {
 		t.Error(entries)
 	}
 	if entries[0].Title != "Thread Safety" {
@@ -133,7 +133,7 @@ func TestIndexAndSearch(t *testing.T) {
 	}
 
 	var attachments []*IndexedAttachment
-	err = client.Search("files", "alternate qortex", map[string]string{"group": "ASICS"}, 20, &attachments)
+	_, err = client.Search("files", "alternate qortex", map[string]string{"group": "ASICS"}, 0, 20, &attachments)
 	if err != nil {
 		t.Error(err)
 	}
