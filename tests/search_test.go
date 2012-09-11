@@ -14,6 +14,7 @@ type Entry struct {
 	Title       string
 	Content     string
 	Attachments []*Attachment
+	CreatedAt   time.Time
 }
 
 type Attachment struct {
@@ -32,10 +33,11 @@ func (this *IndexedAttachment) IndexPieces() (r []string, ais []redisgosearch.In
 	return
 }
 
-func (this *IndexedAttachment) IndexEntity() (indexType string, key string, entity interface{}) {
+func (this *IndexedAttachment) IndexEntity() (indexType string, key string, entity interface{}, rank int64) {
 	key = this.Entry.Id.Hex() + this.Attachment.Filename
 	indexType = "files"
 	entity = this
+	rank = this.Entry.CreatedAt.UnixNano()
 	return
 }
 
@@ -64,10 +66,11 @@ func (this *Entry) IndexPieces() (r []string, ais []redisgosearch.Indexable) {
 	return
 }
 
-func (this *Entry) IndexEntity() (indexType string, key string, entity interface{}) {
+func (this *Entry) IndexEntity() (indexType string, key string, entity interface{}, rank int64) {
 	key = this.Id.Hex()
 	indexType = "entries"
 	entity = this
+	rank = this.CreatedAt.UnixNano()
 	return
 }
 
@@ -95,6 +98,7 @@ func TestIndexAndSearch(t *testing.T) {
 				CreatedAt:   time.Now(),
 			},
 		},
+		CreatedAt: time.Unix(10000, 0),
 	}
 	e2 := &Entry{
 		Id:      bson.ObjectIdHex("50344415ff3a8aa694000002"),
@@ -112,6 +116,7 @@ func TestIndexAndSearch(t *testing.T) {
 				CreatedAt:   time.Now(),
 			},
 		},
+		CreatedAt: time.Unix(20000, 0),
 	}
 
 	mgodb.Save("entries", e1)
@@ -142,4 +147,10 @@ func TestIndexAndSearch(t *testing.T) {
 		t.Error(attachments[0])
 	}
 
+	// sort
+	var sorted []*Entry
+	client.Search("entries", "other", nil, 0, 10, &sorted)
+	if sorted[0].Id.Hex() != "50344415ff3a8aa694000002" {
+		t.Error(sorted[0])
+	}
 }

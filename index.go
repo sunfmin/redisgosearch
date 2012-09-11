@@ -13,7 +13,7 @@ type Client struct {
 
 type Indexable interface {
 	IndexPieces() (pieces []string, relatedPieces []Indexable)
-	IndexEntity() (indexType string, key string, entity interface{})
+	IndexEntity() (indexType string, key string, entity interface{}, rank int64)
 	IndexFilters() (r map[string]string)
 }
 
@@ -28,7 +28,7 @@ func NewClient(address string, namespace string) (r *Client) {
 }
 
 func (this *Client) Index(i Indexable) (err error) {
-	indexType, key, entity := i.IndexEntity()
+	indexType, key, entity, rank := i.IndexEntity()
 
 	c, err := json.Marshal(entity)
 	if err != nil {
@@ -39,6 +39,7 @@ func (this *Client) Index(i Indexable) (err error) {
 
 	entityKey := this.withnamespace(indexType, "entity", key)
 	this.redisConn.Do("SET", entityKey, c)
+	this.redisConn.Do("SET", "rank_"+entityKey, rank)
 
 	filters := i.IndexFilters()
 

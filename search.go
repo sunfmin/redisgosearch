@@ -8,6 +8,7 @@ import (
 
 func (this *Client) Search(indexType string, keywords string, filters map[string]string, skip int, limit int, result interface{}) (count int, err error) {
 	words := Segment(keywords)
+	keywordsKey := this.withnamespace(indexType, "search", strings.Join(words, "+"))
 	var args []interface{}
 	for _, word := range words {
 		args = append(args, this.withnamespace(indexType, "keywords", word))
@@ -19,7 +20,17 @@ func (this *Client) Search(indexType string, keywords string, filters map[string
 		}
 	}
 
-	rawKeyRs, err := this.redisConn.Do("SINTER", args...)
+	args = append([]interface{}{keywordsKey}, args...)
+
+	_, err = this.redisConn.Do("SINTERSTORE", args...)
+
+	if err != nil {
+		return
+	}
+
+	sortArgs := []interface{}{keywordsKey, "BY", "rank_*", "DESC"}
+
+	rawKeyRs, err := this.redisConn.Do("SORT", sortArgs...)
 	if err != nil {
 		return
 	}
