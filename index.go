@@ -1,8 +1,8 @@
 package redisgosearch
 
 import (
-	"github.com/garyburd/redigo/redis"
 	"encoding/json"
+	"github.com/garyburd/redigo/redis"
 	"strings"
 )
 
@@ -57,6 +57,42 @@ func (this *Client) Index(i Indexable) (err error) {
 	if len(relatedIndexables) > 0 {
 		for _, i1 := range relatedIndexables {
 			this.Index(i1)
+		}
+	}
+
+	return
+}
+
+func (this *Client) RemoveIndex(i Indexable) (err error) {
+	indexType, key, entity, rank := i.IndexEntity()
+
+	c, err := json.Marshal(entity)
+	if err != nil {
+		return
+	}
+
+	pieces, relatedIndexables := i.IndexPieces()
+
+	entityKey := this.withnamespace(indexType, "entity", key)
+	this.redisConn.Do("DEL", entityKey, c)
+	this.redisConn.Do("DEL", "rank_"+entityKey, rank)
+
+	filters := i.IndexFilters()
+
+	for k, v := range filters {
+		this.redisConn.Do("SREM", this.withnamespace(indexType, "filters", k, v), entityKey)
+	}
+
+	for _, piece := range pieces {
+		words := Segment(piece)
+		for _, word := range words {
+			this.redisConn.Do("SREM", this.withnamespace(indexType, "keywords", word), entityKey)
+		}
+	}
+
+	if len(relatedIndexables) > 0 {
+		for _, i1 := range relatedIndexables {
+			this.RemoveIndex(i1)
 		}
 	}
 
