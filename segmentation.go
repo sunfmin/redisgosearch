@@ -14,10 +14,10 @@ func Segment(p string) (r []string) {
 	p = strings.ToLower(p)
 	r1 := strings.Fields(p)
 	for _, word := range r1 {
-		r = append(r, strings.TrimFunc(word, nonWordOrNumbers))
+		// r = append(r, strings.TrimFunc(word, nonWordOrNumbers))
 
 		deepSplitWords := strings.FieldsFunc(word, nonWordOrNumbers)
-		if len(deepSplitWords) > 1 {
+		if len(deepSplitWords) >= 1 {
 			for _, w := range deepSplitWords {
 				r = append(r, w)
 			}

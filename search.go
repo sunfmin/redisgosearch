@@ -8,6 +8,9 @@ import (
 
 func (this *Client) Search(indexType string, keywords string, filters map[string]string, skip int, limit int, result interface{}) (count int, err error) {
 	words := Segment(keywords)
+	if len(words) == 0 {
+		return
+	}
 	keywordsKey := this.withnamespace(indexType, "search", strings.Join(words, "+"))
 	var args []interface{}
 	for _, word := range words {
@@ -63,7 +66,6 @@ func (this *Client) Search(indexType string, keywords string, filters map[string
 	}
 
 	jsonData := "[" + strings.Join(stringRs, ", ") + "]"
-
 	err = json.Unmarshal([]byte(jsonData), result)
 
 	return
