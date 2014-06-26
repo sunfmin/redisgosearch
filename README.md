@@ -1,16 +1,14 @@
 # redisgosearch
 
-redisgosearch implements simple full-text search with Golang and Redis.
+redisgosearch implements fast full-text search with Golang and Redis, using Redis's rich support for sets.
 
 This is a fork of the original package by The Plant and sunfmin. This fork has Chinese character support and cleaned-up interfaces with documentation. The tests also have no external dependencies other than a working Redis installation.
 
-The original documentation was here: https://theplant.jp/en/blogs/13-techforce-making-a-simple-full-text-search-with-golang-and-redis, clarified below for convenience.
+The [original documentation](https://theplant.jp/en/blogs/13-techforce-making-a-simple-full-text-search-with-golang-and-redis) is clarified below.
 
 ## Usage
 
-redisgosearch uses Redis’s rich support for Sets for fast, realtime, full-text search.
-
-Imagine you have blog entries:
+Let's say you have blog entries:
 
 ```go
 type Entry struct {
@@ -109,6 +107,7 @@ var entries []*Entry
 count, err := client.Search("entries", "go community", map[string]string{"group": "New York"}, 0, 20, &entries)
 ```
 
-The 0 and 20 is for pagination, and the count returned is the total count of entries that matched go community.
+The 0 and 20 is for pagination, and `count` is the total number of entries that matched "go community".
 
-The current feature set is simple, and new features are appreciated.
+## Contributing
+The current feature set is simple, and new features are appreciated. Please initiate a pull request, and make sure to `go fmt` and `golint`!
