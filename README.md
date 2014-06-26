@@ -77,7 +77,7 @@ func (entry *Entry) IndexPieces() (r []string, ais []redisgosearch.Indexable) {
     r = append(r, entry.Content)
 
     for _, a := range entry.Attachments {
-    r = append(r, a.Filename)
+        r = append(r, a.Filename)
         ais = append(ais, &IndexedAttachment{entry, a})
     }
 
@@ -106,7 +106,9 @@ func (entry *Entry) IndexFilters() (r map[string]string) {
 
 ```go
 var entries []*Entry
-count, err := client.Search("entries", "go community", map[string]string{"group": "New York"}, 0, 20, &entries)
+count, err := client.Search("entries", "go community",
+                map[string]string{"group": "New York"},
+                0, 20, &entries)
 ```
 
 The 0 and 20 is for pagination, and `count` is the total number of entries that matched "go community".
