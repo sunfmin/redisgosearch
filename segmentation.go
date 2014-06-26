@@ -10,6 +10,8 @@ func nonWordOrNumbers(w rune) (r bool) {
 	return
 }
 
+// Segment breaks up a string into substrings that serve as individual index keys.
+// Currently does not support CJK characters (just splits by spaces).
 func Segment(p string) (r []string) {
 	p = strings.ToLower(p)
 	r1 := strings.Fields(p)

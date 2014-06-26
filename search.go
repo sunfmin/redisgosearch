@@ -1,31 +1,31 @@
 package redisgosearch
 
 import (
-	"strings"
-	// "fmt"
 	"encoding/json"
+	"strings"
 )
 
-func (this *Client) Search(indexType string, keywords string, filters map[string]string, skip int, limit int, result interface{}) (count int, err error) {
+// Search returns the Redis-stored marshalled JSON struct of type indexType, that was originally indexed, filtered by the given parameters.
+func (client *Client) Search(indexType string, keywords string, filters map[string]string, skip int, limit int, result interface{}) (count int, err error) {
 	words := Segment(keywords)
 	if len(words) == 0 {
 		return
 	}
-	keywordsKey := this.withnamespace(indexType, "search", strings.Join(words, "+"))
+	keywordsKey := client.withnamespace(indexType, "search", strings.Join(words, "+"))
 	var args []interface{}
 	for _, word := range words {
-		args = append(args, this.withnamespace(indexType, "keywords", word))
+		args = append(args, client.withnamespace(indexType, "keywords", word))
 	}
 
 	if filters != nil {
 		for k, v := range filters {
-			args = append(args, this.withnamespace(indexType, "filters", k, v))
+			args = append(args, client.withnamespace(indexType, "filters", k, v))
 		}
 	}
 
 	args = append([]interface{}{keywordsKey}, args...)
 
-	_, err = this.redisConn.Do("SINTERSTORE", args...)
+	_, err = client.redisConn.Do("SINTERSTORE", args...)
 
 	if err != nil {
 		return
@@ -33,7 +33,7 @@ func (this *Client) Search(indexType string, keywords string, filters map[string
 
 	sortArgs := []interface{}{keywordsKey, "BY", "rank_*", "DESC"}
 
-	rawKeyRs, err := this.redisConn.Do("SORT", sortArgs...)
+	rawKeyRs, err := client.redisConn.Do("SORT", sortArgs...)
 	if err != nil {
 		return
 	}
@@ -50,7 +50,7 @@ func (this *Client) Search(indexType string, keywords string, filters map[string
 	}
 	iKeyRs = iKeyRs[skip:end]
 
-	rawRs, err := this.redisConn.Do("MGET", iKeyRs...)
+	rawRs, err := client.redisConn.Do("MGET", iKeyRs...)
 	if err != nil {
 		return
 	}

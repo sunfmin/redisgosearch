@@ -1,16 +1,17 @@
 package tests
 
 import (
+	"testing"
+	"time"
+
 	"github.com/sunfmin/redisgosearch"
 	"github.com/sunfmin/mgodb"
 	"labix.org/v2/mgo/bson"
-	"testing"
-	"time"
 )
 
 type Entry struct {
-	Id          bson.ObjectId `bson:"_id"`
-	GroupId     string
+	ID          bson.ObjectId `bson:"_id"`
+	GroupID     string
 	Title       string
 	Content     string
 	Attachments []*Attachment
@@ -28,55 +29,55 @@ type IndexedAttachment struct {
 	Attachment *Attachment
 }
 
-func (this *IndexedAttachment) IndexPieces() (r []string, ais []redisgosearch.Indexable) {
-	r = append(r, this.Attachment.Filename)
+func (attachment *IndexedAttachment) IndexPieces() (r []string, ais []redisgosearch.Indexable) {
+	r = append(r, attachment.Attachment.Filename)
 	return
 }
 
-func (this *IndexedAttachment) IndexEntity() (indexType string, key string, entity interface{}, rank int64) {
-	key = this.Entry.Id.Hex() + this.Attachment.Filename
+func (attachment *IndexedAttachment) IndexEntity() (indexType string, key string, entity interface{}, rank int64) {
+	key = attachment.Entry.ID.Hex() + attachment.Attachment.Filename
 	indexType = "files"
-	entity = this
-	rank = this.Entry.CreatedAt.UnixNano()
+	entity = attachment
+	rank = attachment.Entry.CreatedAt.UnixNano()
 	return
 }
 
-func (this *IndexedAttachment) IndexFilters() (r map[string]string) {
+func (attachment *IndexedAttachment) IndexFilters() (r map[string]string) {
 	r = make(map[string]string)
-	r["group"] = this.Entry.GroupId
+	r["group"] = attachment.Entry.GroupID
 	return
 }
 
-func (this *Entry) MakeId() interface{} {
-	if this.Id == "" {
-		this.Id = bson.NewObjectId()
+func (entry *Entry) MakeID() interface{} {
+	if entry.ID == "" {
+		entry.ID = bson.NewObjectId()
 	}
-	return this.Id
+	return entry.ID
 }
 
-func (this *Entry) IndexPieces() (r []string, ais []redisgosearch.Indexable) {
-	r = append(r, this.Title)
-	r = append(r, this.Content)
+func (entry *Entry) IndexPieces() (r []string, ais []redisgosearch.Indexable) {
+	r = append(r, entry.Title)
+	r = append(r, entry.Content)
 
-	for _, a := range this.Attachments {
+	for _, a := range entry.Attachments {
 		r = append(r, a.Filename)
-		ais = append(ais, &IndexedAttachment{this, a})
+		ais = append(ais, &IndexedAttachment{entry, a})
 	}
 
 	return
 }
 
-func (this *Entry) IndexEntity() (indexType string, key string, entity interface{}, rank int64) {
-	key = this.Id.Hex()
+func (entry *Entry) IndexEntity() (indexType string, key string, entity interface{}, rank int64) {
+	key = entry.ID.Hex()
 	indexType = "entries"
-	entity = this
-	rank = this.CreatedAt.UnixNano()
+	entity = entry
+	rank = entry.CreatedAt.UnixNano()
 	return
 }
 
-func (this *Entry) IndexFilters() (r map[string]string) {
+func (entry *Entry) IndexFilters() (r map[string]string) {
 	r = make(map[string]string)
-	r["group"] = this.GroupId
+	r["group"] = entry.GroupID
 	return
 }
 
@@ -87,8 +88,8 @@ func TestIndexAndSearch(t *testing.T) {
 	client := redisgosearch.NewClient("localhost:6379", "theplant")
 
 	e1 := &Entry{
-		Id:      bson.ObjectIdHex("50344415ff3a8aa694000001"),
-		GroupId: "Qortex",
+		ID:      bson.ObjectIdHex("50344415ff3a8aa694000001"),
+		GroupID: "Qortex",
 		Title:   "Thread Safety",
 		Content: "The connection http://google.com Send and Flush methods cannot be called concurrently with other calls to these methods. The connection Receive method cannot be called concurrently with other calls to Receive. Because the connection Do method uses Send, Flush and Receive, the Do method cannot be called concurrently with Send, Flush, Receive or Do. Unless stated otherwise, all other concurrent access is allowed.",
 		Attachments: []*Attachment{
@@ -101,8 +102,8 @@ func TestIndexAndSearch(t *testing.T) {
 		CreatedAt: time.Unix(10000, 0),
 	}
 	e2 := &Entry{
-		Id:      bson.ObjectIdHex("50344415ff3a8aa694000002"),
-		GroupId: "ASICS",
+		ID:      bson.ObjectIdHex("50344415ff3a8aa694000002"),
+		GroupID: "ASICS",
 		Title:   "redis is a client for the Redis database",
 		Content: "The Conn interface is the primary interface for working with Redis. Applications create connections by calling the Dial, DialWithTimeout or NewConn functions. In the future, functions will be added for creating shareded and other types of connections.",
 		Attachments: []*Attachment{
@@ -150,7 +151,7 @@ func TestIndexAndSearch(t *testing.T) {
 	// sort
 	var sorted []*Entry
 	client.Search("entries", "other", nil, 0, 10, &sorted)
-	if sorted[0].Id.Hex() != "50344415ff3a8aa694000002" {
+	if sorted[0].ID.Hex() != "50344415ff3a8aa694000002" {
 		t.Error(sorted[0])
 	}
 }
