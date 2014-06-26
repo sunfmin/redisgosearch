@@ -21,14 +21,11 @@ type Indexable interface {
 	IndexFilters() (r map[string]string)
 }
 
-// NewClient returns a Client given the redis address and namespace
-func NewClient(address string, namespace string) (r *Client) {
+// NewClient returns a Client given the redis address and namespace,
+// or an error if a connection couldn't be made.
+func NewClient(address string, namespace string) (r *Client, err error) {
 	r = &Client{namespace: namespace}
-	var err error
 	r.redisConn, err = redis.Dial("tcp", address)
-	if err != nil {
-		panic(err)
-	}
 	return
 }
 

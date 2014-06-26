@@ -75,7 +75,10 @@ func (entry *Entry) IndexFilters() (r map[string]string) {
 // TestIndexAndSearch requires that Redis be setup in your environment,
 // with the default port.
 func TestIndexAndSearch(t *testing.T) {
-	client := redisgosearch.NewClient("localhost:6379", "theplant")
+	client, err := redisgosearch.NewClient("localhost:6379", "theplant")
+	if err != nil {
+		t.Error(err)
+	}
 
 	e1 := &Entry{
 		ID:      "50344415ff3a8aa694000001",
