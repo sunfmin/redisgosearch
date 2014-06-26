@@ -2,7 +2,7 @@
 
 redisgosearch implements fast full-text search with Golang and Redis, using Redis's rich support for sets.
 
-This is a fork of the original package by The Plant and sunfmin. This fork has Chinese character support and cleaned-up interfaces with documentation. The tests also have no external dependencies other than a working Redis installation.
+This is a fork of the original package by @sunfmin. This fork has Chinese character support and cleaned-up interfaces with documentation. The tests also have no external dependencies other than a working Redis installation.
 
 The [original documentation](https://theplant.jp/en/blogs/13-techforce-making-a-simple-full-text-search-with-golang-and-redis) is clarified below.
 
