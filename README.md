@@ -2,7 +2,7 @@
 
 redisgosearch implements simple full-text search with Golang and Redis.
 
-This is a fork of the original package by The Plant and sunfmin. This fork has Chinese character support and cleaned-up interfaces with documentation. The tests also don't rely on mongodb as the original did.
+This is a fork of the original package by The Plant and sunfmin. This fork has Chinese character support and cleaned-up interfaces with documentation. The tests also have no external dependencies other than a working Redis installation.
 
 The original documentation was here: https://theplant.jp/en/blogs/13-techforce-making-a-simple-full-text-search-with-golang-and-redis, clarified below for convenience.
 
