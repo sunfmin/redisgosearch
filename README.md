@@ -6,7 +6,9 @@ This is a fork of the original package by @sunfmin. This fork has Chinese charac
 
 The [original documentation](https://theplant.jp/en/blogs/13-techforce-making-a-simple-full-text-search-with-golang-and-redis) is clarified below.
 
-## Usage
+## Tutorial
+
+Check out [godoc](http://godoc.org/github.com/purohit/redisgosearch) for package documentation.
 
 Let's say you have blog entries:
 
@@ -18,7 +20,7 @@ type Entry struct {
 }
 ```
 
-You want a user to be able to search any word or combination of `Title` or `Content`. Two data samples are:
+You want to be able to search on the `Title` and `Content` fields. Let's create two blog entries to index.
 
 ```go
 Entry {
@@ -34,7 +36,9 @@ Entry {
 }
 ```
 
-In order to let people search any word in these two entries, we first index these texts into the Redis database as keywords that we segmented from the title and content as keys, with the Ids as Redis set values.
+All keys in Redis are prefixed by a namespace you pass in when creating a `Client` (in this case, `entries`).
+
+When you call `Index` on the two entries, we store each keyword from the text we want, `Title` and `Keyword`, as determined by the `Segment` function. Each key's value is a set whose members point back to the original entries.
 
 ```
 redis 127.0.0.1:6379> keys *
@@ -50,16 +54,14 @@ redis 127.0.0.1:6379> SMEMBERS entries:keywords:community
 1) "entries:entity:50344415ff3a8aa694000002"
 ```
 
-Then, for example, if the user types the keywords go community, we first segment the keywords to `["go", "community"]` then do:
+That way, searching for entries that belong to a query such as "go community" is a simple set intersection. The query is first segmented to `["go", "community"]`, and the intersection (Redis: `SINTER`) is performed to return the IDs of the original entities.
 
 ```
 redis 127.0.0.1:6379> SINTER entries:keywords:go entries:keywords:community
 1) "entries:entity:50344415ff3a8aa694000002"
 ```
-
-With the Redis Intersect command `SINTER` for Set, we are able to get the entry ids for entries that contain both the keywords go and community.
-
-redisgosearch can index any Go object that satisfies `Indexable`. You can `Search` from the indexed Redis database, and unmarshal results into your indexed objects.
+Then, `Search` will take the resulting keys, unmarshal the original structs,
+and return them to you. redisgosearch can index any Go struct satisfying `Indexable`.
 
 ```go
 type Entry struct {
@@ -96,11 +98,11 @@ func (entry *Entry) IndexFilters() (r map[string]string) {
 }
 ```
 
-`IndexPieces` tells the package what text needs to be segmented and indexed. Note that in an `Entry` struct, you might also want to index other types of data that are connected to the entry, for example attachment data. In our case, the user can search any filename and find out which entries those files belong to. So, the other return values return an array of `Indexable` objects that can be indexed and connected together.
+`IndexPieces` tells the package what text should be segmented and indexed. In our example, you might also want to index other data connected to an entry, like attachment data, so you could search any filename and find out which entries those files belong to. Thus, `ais` can return an array of `Indexable` objects that are indexed and connected with the original struct.
 
-`IndexEntity` tells the package the type of index from the namespace and the key stored in the Redis Set. The actual entity value will be marshalled into JSON and stored into Redis.
+`IndexEntity` tells the package the string indexType (used to prefix keys), and the unique key. Combined with the namespace, this becomes the key that owns a Redis `SET`. The actual entity struct will be marshalled into JSON and stored into Redis.
 
-`IndexFilters` gives the ability to add additional metadata that can be filtered when searching. For example I want to search “go community” in “New York”.
+`IndexFilters` allows metadata to further filter queries. For example, because we added a filter above, you can search “go community” filtered by the "group" “New York”:
 
 ```go
 var entries []*Entry
