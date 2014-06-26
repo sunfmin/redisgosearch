@@ -2,7 +2,7 @@
 
 redisgosearch implements fast full-text search with Golang and Redis, using Redis's rich support for sets.
 
-This is a fork of the original package by @sunfmin. This fork has Chinese character support and cleaned-up interfaces with documentation. The tests also have no external dependencies other than a working Redis installation.
+This fork of @sunfmin's original allows custom keyword segmentation, and cleaned-up interfaces with documentation. The tests also have no external dependencies other than a working Redis installation.
 
 The [original documentation](https://theplant.jp/en/blogs/13-techforce-making-a-simple-full-text-search-with-golang-and-redis) is clarified below.
 
@@ -38,7 +38,7 @@ Entry {
 
 All keys in Redis are prefixed by a namespace you pass in when creating a `Client` (in this case, `entries`).
 
-When you call `Index` on the two entries, we store each keyword from the text we want, `Title` and `Keyword`, as determined by the `Segment` function. Each key's value is a set whose members point back to the original entries.
+When you call `Index` on the two entries, the text from `Title` and `Keyword` is broken up into keywords by the `DefaultSegment` function (if you have your own keyword segmentation function, call `IndexCustom`) Each key's value is a set whose members point back to the original entries.
 
 ```
 redis 127.0.0.1:6379> keys *

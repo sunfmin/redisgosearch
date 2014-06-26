@@ -29,9 +29,7 @@ func NewClient(address string, namespace string) (r *Client, err error) {
 	return
 }
 
-// Index actually marshals the given Indexable and stores
-// it in the Redis database.
-func (client *Client) Index(i Indexable) (err error) {
+func (client *Client) index(i Indexable, segmentFn SegmentFn) (err error) {
 	indexType, key, entity, rank := i.IndexEntity()
 
 	c, err := json.Marshal(entity)
@@ -52,7 +50,7 @@ func (client *Client) Index(i Indexable) (err error) {
 	}
 
 	for _, piece := range pieces {
-		words := Segment(piece)
+		words := segmentFn(piece)
 		for _, word := range words {
 			client.redisConn.Do("SADD", client.withnamespace(indexType, "keywords", word), entityKey)
 		}
@@ -67,9 +65,18 @@ func (client *Client) Index(i Indexable) (err error) {
 	return
 }
 
-// RemoveIndex deletes the Redis keys and data for the given
-// Indexable (the opposite of Index)
-func (client *Client) RemoveIndex(i Indexable) (err error) {
+// Index marshals the given Indexable and stores
+// it in the Redis database, using the default keyword segmentation function.
+func (client *Client) Index(i Indexable) (err error) {
+	return client.index(i, DefaultSegment)
+}
+
+// IndexCustom does the same as Index, with a custom keyword segmentation function.
+func (client *Client) IndexCustom(i Indexable, segmentFn SegmentFn) (err error) {
+	return client.index(i, segmentFn)
+}
+
+func (client *Client) removeIndex(i Indexable, segmentFn SegmentFn) (err error) {
 	indexType, key, entity, rank := i.IndexEntity()
 
 	c, err := json.Marshal(entity)
@@ -90,7 +97,7 @@ func (client *Client) RemoveIndex(i Indexable) (err error) {
 	}
 
 	for _, piece := range pieces {
-		words := Segment(piece)
+		words := segmentFn(piece)
 		for _, word := range words {
 			client.redisConn.Do("SREM", client.withnamespace(indexType, "keywords", word), entityKey)
 		}
@@ -103,6 +110,17 @@ func (client *Client) RemoveIndex(i Indexable) (err error) {
 	}
 
 	return
+}
+
+// RemoveIndex deletes the Redis keys and data for the given
+// Indexable (the opposite of Index)
+func (client *Client) RemoveIndex(i Indexable) (err error) {
+	return client.removeIndex(i, DefaultSegment)
+}
+
+// RemoveIndexCustom does the same as RemoveIndex, with a custom keyword segmentation function.
+func (client *Client) RemoveIndexCustom(i Indexable, segmentFn SegmentFn) (err error) {
+	return client.removeIndex(i, segmentFn)
 }
 
 func (client *Client) withnamespace(keys ...string) (r string) {

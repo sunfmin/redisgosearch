@@ -5,9 +5,8 @@ import (
 	"strings"
 )
 
-// Search returns the Redis-stored marshalled JSON struct of type indexType, that was originally indexed, filtered by the given parameters.
-func (client *Client) Search(indexType string, keywords string, filters map[string]string, skip int, limit int, result interface{}) (count int, err error) {
-	words := Segment(keywords)
+func (client *Client) search(indexType string, keywords string, filters map[string]string, skip int, limit int, segmentFn SegmentFn, result interface{}) (count int, err error) {
+	words := DefaultSegment(keywords)
 	if len(words) == 0 {
 		return
 	}
@@ -69,4 +68,14 @@ func (client *Client) Search(indexType string, keywords string, filters map[stri
 	err = json.Unmarshal([]byte(jsonData), result)
 
 	return
+}
+
+// Search returns the Redis-stored marshalled JSON struct of type indexType, that was originally indexed, filtered by the given parameters.
+func (client *Client) Search(indexType string, keywords string, filters map[string]string, skip int, limit int, result interface{}) (count int, err error) {
+	return client.search(indexType, keywords, filters, skip, limit, DefaultSegment, result)
+}
+
+// SearchCustom does the same as Search, but with a custom keyword segmentation function instead of the default one. See SegmentFn.
+func (client *Client) SearchCustom(indexType string, keywords string, filters map[string]string, skip int, limit int, segmentFn SegmentFn, result interface{}) (count int, err error) {
+	return client.search(indexType, keywords, filters, skip, limit, segmentFn, result)
 }
